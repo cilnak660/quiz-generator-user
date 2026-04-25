@@ -1,21 +1,31 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
+import { getFirestore } from "firebase/firestore";
+import { getAuth, GoogleAuthProvider } from "firebase/auth";
+
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-    apiKey: "AIzaSyBIf58_xv0mm0ZzCDqTylG18dvKO4yetGw",
-    authDomain: "quiz-generator-8cd15.firebaseapp.com",
-    projectId: "quiz-generator-8cd15",
-    storageBucket: "quiz-generator-8cd15.firebasestorage.app",
-    messagingSenderId: "386588837803",
-    appId: "1:386588837803:web:ee773ffc1c189a5dd534ee",
-    measurementId: "G-85NFQP1VR5"
+    apiKey: "AIzaSyDhkUt26T9K8wP2Gc_I4BckHNsDGlTlmhs",
+    authDomain: "quiz-generator-data.firebaseapp.com",
+    projectId: "quiz-generator-data",
+    storageBucket: "quiz-generator-data.firebasestorage.app",
+    messagingSenderId: "1011980251431",
+    appId: "1:1011980251431:web:194778ad7824b49bbff902",
+    measurementId: "G-W27573S7HS"
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+
+const provider = new GoogleAuthProvider();
+
+export { db, app, auth, provider };

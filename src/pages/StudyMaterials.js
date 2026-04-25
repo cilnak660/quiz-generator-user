@@ -1,63 +1,128 @@
-import React from 'react';
-import { FileText, Download, Search, Presentation, Video } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { FileText, Download, Search, Loader2, BookOpen, ExternalLink } from 'lucide-react';
+import { db } from '../Config/Config';
+import { collection, getDocs } from 'firebase/firestore';
 
 const StudyMaterials = () => {
-  const materials = [
-    { id: 1, title: 'React Lifecycle Cheatsheet', category: 'Document', size: '1.2 MB', icon: FileText, color: 'text-rose-500', bg: 'bg-rose-50' },
-    { id: 2, title: 'State Management Presentation', category: 'Slides', size: '4.5 MB', icon: Presentation, color: 'text-amber-500', bg: 'bg-amber-50' },
-    { id: 3, title: 'Tailwind Grid System', category: 'Document', size: '0.8 MB', icon: FileText, color: 'text-blue-500', bg: 'bg-blue-50' },
-    { id: 4, title: 'Node/Express Architecture', category: 'Diagram', size: '2.1 MB', icon: FileText, color: 'text-emerald-500', bg: 'bg-emerald-50' },
-    { id: 5, title: 'MongoDB Indexing Tutorial', category: 'Video', size: '145 MB', icon: Video, color: 'text-purple-500', bg: 'bg-purple-50' },
-    { id: 6, title: 'Capstone Project Guidelines', category: 'Document', size: '3.3 MB', icon: FileText, color: 'text-slate-500', bg: 'bg-slate-100' },
-  ];
+  const [materials, setMaterials] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    const fetchMaterials = async () => {
+      try {
+        const materialsSnapshot = await getDocs(collection(db, "material"));
+        const materialsData = materialsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setMaterials(materialsData);
+      } catch (error) {
+        console.error("Error fetching materials:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMaterials();
+  }, []);
+
+  const filteredMaterials = materials.filter(mat =>
+    mat.title?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+        <Loader2 className="animate-spin text-indigo-600" size={48} />
+        <p className="text-slate-500 font-black tracking-widest uppercase text-sm">Loading Resources...</p>
+      </div>
+    );
+  }
 
   return (
-    <div>
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
-        <div>
-          <h2 className="text-3xl font-bold mb-2 flex items-center gap-3">
-            <FileText className="text-indigo-600" size={32} />
+    <div className="max-w-[1400px] mx-auto pb-20 px-6 mt-6">
+      {/* Premium Header Section */}
+      <div className="bg-white rounded-[2.5rem] p-10 lg:p-14 mb-12 shadow-sm border border-slate-100 flex flex-col lg:flex-row lg:items-center justify-between gap-10 relative overflow-hidden">
+        {/* Abstract Background Element */}
+        <div className="absolute -right-20 -top-20 w-96 h-96 bg-indigo-50/50 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div className="relative z-10 max-w-2xl">
+          <span className="inline-block px-4 py-1.5 bg-indigo-50 text-indigo-600 text-[10px] font-black tracking-[0.2em] uppercase rounded-lg mb-4">
+            Resource Library
+          </span>
+          <h2 className="text-4xl md:text-2xl font-black text-slate-800 mb-4 tracking-tight">
             Study Materials
           </h2>
-          <p className="text-slate-500">Download tutorials, reference notes, and class resources.</p>
+          <p className="text-slate-500 text-sm leading-relaxed">
+            Access an extensive collection of tutorials, reference notes, and class resources to accelerate your learning.
+          </p>
         </div>
-        
-        <div className="relative max-w-xs w-full">
-          <input 
-            type="text" 
-            placeholder="Search materials..." 
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-shadow"
-          />
-          <Search className="absolute left-3 top-3 text-slate-400" size={18} />
+
+        <div className="relative z-10 w-full lg:w-auto min-w-[320px]">
+          <div className="relative bg-white rounded-2xl shadow-xl shadow-slate-200/50 hover:shadow-indigo-100 transition-all">
+            <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400" size={24} />
+            <input
+              type="text"
+              placeholder="Search by title..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-16 pr-6 py-5 rounded-2xl border-2 border-transparent focus:outline-none focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 transition-all font-bold text-slate-700 bg-slate-50 focus:bg-white"
+            />
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {materials.map((mat) => {
-          const Icon = mat.icon;
+      {/* Materials Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+        {filteredMaterials.map((mat) => {
           return (
-            <div key={mat.id} className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-all hover:-translate-y-1 group flex flex-col h-full cursor-pointer hover:border-indigo-100">
-              <div className="flex justify-between items-start mb-4">
-                <div className={`p-4 rounded-xl ${mat.bg} ${mat.color}`}>
-                  <Icon size={28} />
+            <div key={mat.id} className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100 hover:shadow-xl hover:-translate-y-2 hover:border-indigo-100 transition-all duration-300 group flex flex-col h-full relative cursor-pointer">
+              <div className="flex justify-between items-start mb-6">
+                <div className={`p-4 rounded-2xl bg-rose-50 text-rose-600 transition-transform duration-300 group-hover:scale-110 group-hover:bg-indigo-600 group-hover:text-white`}>
+                  <FileText size={32} />
                 </div>
-                <span className="text-xs font-semibold px-2 py-1 bg-slate-100 text-slate-600 rounded-lg">
-                  {mat.category}
+                <span className="bg-slate-100 text-slate-500 text-[10px] font-black px-3 py-1.5 rounded-lg tracking-widest uppercase">
+                  PDF DOC
                 </span>
               </div>
-              
-              <h3 className="font-bold text-lg mb-1 text-slate-800 line-clamp-2">{mat.title}</h3>
-              <p className="text-sm text-slate-500 mb-6">{mat.size}</p>
-              
-              <div className="mt-auto pt-4 border-t border-slate-100">
-                <button className="w-full flex items-center justify-center gap-2 text-indigo-600 font-semibold hover:bg-indigo-50 py-2 rounded-lg transition-colors">
-                  <Download size={18} />
-                  Download
-                </button>
+
+              <div className="flex-1">
+                <h3 className="text-xl font-black text-slate-800 mb-2 line-clamp-2 leading-tight group-hover:text-indigo-600 transition-colors" title={mat.title}>
+                  {mat.title}
+                </h3>
+                <p className="text-sm font-bold text-slate-400 mb-8">{mat.subTitle || '4.2 MB'}</p>
+              </div>
+
+              <div className="flex items-center gap-3 mt-auto">
+                <a
+                  href={mat.pdf_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 bg-indigo-50 text-indigo-700 text-center py-4 rounded-xl font-black text-sm hover:bg-indigo-600 hover:text-white transition-all shadow-md hover:shadow-indigo-200 flex items-center justify-center gap-2"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  View <ExternalLink size={16} />
+                </a>
+                <a
+                  href={mat.pdf_url}
+                  download
+                  className="p-4 bg-white border-2 border-slate-100 text-slate-600 rounded-xl hover:bg-slate-50 hover:border-slate-200 transition-all shadow-sm group/btn"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Download size={20} className="group-hover/btn:-translate-y-0.5 transition-transform" />
+                </a>
               </div>
             </div>
           );
         })}
+        {filteredMaterials.length === 0 && (
+          <div className="col-span-full p-20 text-center text-slate-400 bg-white rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col items-center justify-center">
+            <BookOpen size={64} className="mb-6 opacity-30 text-indigo-600" />
+            <h3 className="text-2xl font-black text-slate-800 mb-2">No materials found</h3>
+            <p className="text-lg text-slate-500 font-medium max-w-md mx-auto">Try adjusting your search query, or check back later for new resources.</p>
+          </div>
+        )}
       </div>
     </div>
   );
