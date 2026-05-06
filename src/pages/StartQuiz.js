@@ -13,8 +13,8 @@ import {
     Lightbulb,
     ExternalLink
 } from 'lucide-react';
-import { db } from '../Config/Config';
-import { doc, getDoc, collection, getDocs, setDoc, serverTimestamp } from 'firebase/firestore';
+import { db, auth } from '../Config/Config';
+import { doc, getDoc, collection, getDocs, setDoc, serverTimestamp, updateDoc, arrayUnion } from 'firebase/firestore';
 
 const StartQuiz = () => {
     const { quizId } = useParams();
@@ -28,6 +28,9 @@ const StartQuiz = () => {
     const [timeLeft, setTimeLeft] = useState(0);
     const [loading, setLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [showResultPopup, setShowResultPopup] = useState(false);
+    const [finalScore, setFinalScore] = useState(null);
+    const [isAutoSubmitted, setIsAutoSubmitted] = useState(false);
 
     const handleSubmit = useCallback(async (auto = false) => {
         if (isSubmitting) return;
@@ -51,17 +54,21 @@ const StartQuiz = () => {
                 totalQuestions: questions.length,
                 correctAnswers: correctAnswersCount,
                 submittedAt: serverTimestamp(),
+                uid: auth.currentUser ? auth.currentUser.uid : null,
             };
 
             await setDoc(doc(db, "quiz_results", `${quizId}_${Date.now()}`), resultData);
 
-            if (auto) {
-                alert("Time's up! Your quiz has been automatically submitted.");
-            } else {
-                alert(`Quiz submitted successfully! Your score: ${score}%`);
+            if (auth.currentUser) {
+                const quizRef = doc(db, "module_test", quizId);
+                await updateDoc(quizRef, {
+                    uid: arrayUnion(auth.currentUser.uid)
+                });
             }
 
-            navigate(-1);
+            setIsAutoSubmitted(auto);
+            setFinalScore(score);
+            setShowResultPopup(true);
         } catch (error) {
             console.error("Error submitting quiz: ", error);
             alert("Failed to submit quiz. Please try again.");
@@ -349,6 +356,35 @@ const StartQuiz = () => {
                     </div>
                 </div>
             </main>
+
+            {/* Result Popup */}
+            {showResultPopup && (
+                <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+                    <div className="bg-white rounded-[2rem] p-8 max-w-md w-full shadow-2xl relative">
+                        <div className="text-center">
+                            <div className="w-20 h-20 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                                <ShieldCheck size={40} className="text-indigo-600" />
+                            </div>
+                            <h2 className="text-3xl font-black text-slate-800 mb-2">
+                                {isAutoSubmitted ? "Time's Up!" : "Quiz Submitted!"}
+                            </h2>
+                            <p className="text-slate-500 font-medium mb-8">
+                                {isAutoSubmitted ? "Your quiz has been automatically submitted." : "Your responses have been recorded."}
+                            </p>
+                            <div className="bg-indigo-50 rounded-2xl p-6 mb-8 border border-indigo-100">
+                                <p className="text-xs font-black text-indigo-400 uppercase tracking-widest mb-2">Final Score</p>
+                                <p className="text-6xl font-black text-indigo-600">{finalScore}<span className="text-3xl text-indigo-400">%</span></p>
+                            </div>
+                            <button
+                                onClick={() => navigate(-1)}
+                                className="w-full bg-indigo-600 text-white rounded-2xl py-4 font-black text-lg hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-200"
+                            >
+                                Continue
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

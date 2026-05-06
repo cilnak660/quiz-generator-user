@@ -17,8 +17,9 @@ import {
     ExternalLink
 } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
-import { db } from '../Config/Config';
+import { db, auth } from '../Config/Config';
 import { collection, getDocs, query, where, doc, getDoc } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 
 const LessonDetails = () => {
     const { id } = useParams();
@@ -26,6 +27,16 @@ const LessonDetails = () => {
     const [quizzes, setQuizzes] = useState([]);
     const [materials, setMaterials] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [userId, setUserId] = useState(null);
+    const [userScores, setUserScores] = useState({});
+
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, user => {
+            if (user) setUserId(user.uid);
+            else setUserId(null);
+        });
+        return () => unsubscribe();
+    }, []);
 
     useEffect(() => {
         const fetchModuleData = async () => {
@@ -70,6 +81,42 @@ const LessonDetails = () => {
 
         fetchModuleData();
     }, [id]);
+
+    useEffect(() => {
+        const fetchScores = async () => {
+            if (!userId || quizzes.length === 0) return;
+            try {
+                const scoresMap = {};
+                await Promise.all(quizzes.map(async (quiz) => {
+                    const qRes = query(collection(db, "quiz_results"), where("quizId", "==", quiz.id));
+                    const snap = await getDocs(qRes);
+                    
+                    let userResult = null;
+                    snap.forEach(doc => {
+                        const data = doc.data();
+                        if (data.uid === userId) {
+                            if (!userResult || (data.submittedAt && userResult.submittedAt && data.submittedAt.toMillis() > userResult.submittedAt.toMillis())) {
+                                userResult = data;
+                            }
+                        } else if (!data.uid) {
+                            if (!userResult || (data.submittedAt && userResult.submittedAt && data.submittedAt.toMillis() > userResult.submittedAt.toMillis())) {
+                                userResult = data;
+                            }
+                        }
+                    });
+                    
+                    if (userResult) {
+                        scoresMap[quiz.id] = userResult;
+                    }
+                }));
+                setUserScores(scoresMap);
+            } catch (error) {
+                console.error("Error fetching scores:", error);
+            }
+        };
+
+        fetchScores();
+    }, [userId, quizzes]);
 
     if (loading) {
         return (
@@ -181,9 +228,23 @@ const LessonDetails = () => {
                                             </div>
 
                                             <div className="w-full md:w-auto mt-4 md:mt-0 shrink-0">
-                                                <Link to={`/start-quiz/${quiz.id}`} className="block w-full md:w-auto text-center bg-indigo-600 text-white font-black px-10 py-4 rounded-2xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">
-                                                    Start Quiz
-                                                </Link>
+                                                {quiz.uid && userId && quiz.uid.includes(userId) ? (
+                                                    <div className="flex flex-col items-center gap-2">
+                                                        <div className="block w-full md:w-auto text-center bg-emerald-50 text-emerald-600 font-black px-10 py-4 rounded-2xl border-2 border-emerald-200 select-none flex items-center justify-center gap-2">
+                                                            <CheckCircle2 size={20} />
+                                                            Completed
+                                                        </div>
+                                                        {userScores[quiz.id] && (
+                                                            <div className="text-xs font-bold text-slate-500 uppercase tracking-widest text-center mt-1">
+                                                                Score: <span className="text-indigo-600">{userScores[quiz.id].score}%</span> <span className="opacity-60">({userScores[quiz.id].correctAnswers}/{userScores[quiz.id].totalQuestions})</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <Link to={`/start-quiz/${quiz.id}`} className="block w-full md:w-auto text-center bg-indigo-600 text-white font-black px-10 py-4 rounded-2xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">
+                                                        Start Quiz
+                                                    </Link>
+                                                )}
                                             </div>
                                         </div>
                                     );
