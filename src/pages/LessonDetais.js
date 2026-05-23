@@ -90,21 +90,21 @@ const LessonDetails = () => {
                 await Promise.all(quizzes.map(async (quiz) => {
                     const qRes = query(collection(db, "quiz_results"), where("quizId", "==", quiz.id));
                     const snap = await getDocs(qRes);
-                    
+
                     let userResult = null;
                     snap.forEach(doc => {
                         const data = doc.data();
                         if (data.uid === userId) {
                             if (!userResult || (data.submittedAt && userResult.submittedAt && data.submittedAt.toMillis() > userResult.submittedAt.toMillis())) {
-                                userResult = data;
+                                userResult = { ...data, id: doc.id };
                             }
                         } else if (!data.uid) {
                             if (!userResult || (data.submittedAt && userResult.submittedAt && data.submittedAt.toMillis() > userResult.submittedAt.toMillis())) {
-                                userResult = data;
+                                userResult = { ...data, id: doc.id };
                             }
                         }
                     });
-                    
+
                     if (userResult) {
                         scoresMap[quiz.id] = userResult;
                     }
@@ -229,14 +229,27 @@ const LessonDetails = () => {
 
                                             <div className="w-full md:w-auto mt-4 md:mt-0 shrink-0">
                                                 {quiz.uid && userId && quiz.uid.includes(userId) ? (
-                                                    <div className="flex flex-col items-center gap-2">
-                                                        <div className="block w-full md:w-auto text-center bg-emerald-50 text-emerald-600 font-black px-10 py-4 rounded-2xl border-2 border-emerald-200 select-none flex items-center justify-center gap-2">
-                                                            <CheckCircle2 size={20} />
-                                                            Completed
+                                                    <div className="flex flex-col items-center gap-3">
+                                                        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                                                            {userScores[quiz.id] && userScores[quiz.id].id && (
+                                                                <Link 
+                                                                    to={`/quiz-result/${userScores[quiz.id].id}`} 
+                                                                    className="block w-full sm:w-auto text-center bg-emerald-600 text-white font-black px-8 py-3.5 rounded-2xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 flex items-center justify-center gap-2"
+                                                                >
+                                                                    <CheckCircle2 size={18} />
+                                                                    Quiz Result
+                                                                </Link>
+                                                            )}
+                                                            <Link 
+                                                                to={`/start-quiz/${quiz.id}`} 
+                                                                className="block w-full sm:w-auto text-center bg-white border-2 border-indigo-600 text-indigo-600 font-black px-8 py-3 rounded-2xl hover:bg-indigo-50 transition-all flex items-center justify-center gap-2"
+                                                            >
+                                                                Retake Quiz
+                                                            </Link>
                                                         </div>
                                                         {userScores[quiz.id] && (
                                                             <div className="text-xs font-bold text-slate-500 uppercase tracking-widest text-center mt-1">
-                                                                Score: <span className="text-indigo-600">{userScores[quiz.id].score}%</span> <span className="opacity-60">({userScores[quiz.id].correctAnswers}/{userScores[quiz.id].totalQuestions})</span>
+                                                                Latest Score: <span className="text-indigo-600">{userScores[quiz.id].correctAnswers}/{userScores[quiz.id].totalQuestions}</span>
                                                             </div>
                                                         )}
                                                     </div>

@@ -7,6 +7,7 @@ import UserSubjects from './pages/UserSubjects';
 import SubjectDetails from './pages/SubjectDetails';
 import LessonDetails from './pages/LessonDetais';
 import StartQuiz from './pages/StartQuiz';  
+import QuizResult from './pages/QuizResult';
 import Login from './pages/Login';
 import { auth } from './Config/Config';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -45,6 +46,7 @@ function App() {
           <Route path="/subject-details/:id" element={user ? <SubjectDetails /> : <Navigate to="/login" />} />
           <Route path="/lesson-details/:id" element={user ? <LessonDetails /> : <Navigate to="/login" />} /> 
           <Route path="/start-quiz/:quizId" element={user ? <StartQuiz /> : <Navigate to="/login" />} />
+          <Route path="/quiz-result/:resultId" element={user ? <QuizResult /> : <Navigate to="/login" />} />
         </Routes>
       </Layout>
     </Router>

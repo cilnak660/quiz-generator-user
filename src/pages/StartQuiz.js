@@ -31,6 +31,7 @@ const StartQuiz = () => {
     const [showResultPopup, setShowResultPopup] = useState(false);
     const [finalScore, setFinalScore] = useState(null);
     const [isAutoSubmitted, setIsAutoSubmitted] = useState(false);
+    const [submittedResultId, setSubmittedResultId] = useState(null);
 
     const handleSubmit = useCallback(async (auto = false) => {
         if (isSubmitting) return;
@@ -46,6 +47,14 @@ const StartQuiz = () => {
 
             const score = Math.round((correctAnswersCount / questions.length) * 100);
 
+            const resultId = `${quizId}_${Date.now()}`;
+            const answersMap = {};
+            questions.forEach((q, index) => {
+                if (selectedAnswers[index] !== undefined) {
+                    answersMap[q.id] = selectedAnswers[index];
+                }
+            });
+
             // Save result to Firestore
             const resultData = {
                 quizId,
@@ -55,9 +64,10 @@ const StartQuiz = () => {
                 correctAnswers: correctAnswersCount,
                 submittedAt: serverTimestamp(),
                 uid: auth.currentUser ? auth.currentUser.uid : null,
+                selectedAnswers: answersMap,
             };
 
-            await setDoc(doc(db, "quiz_results", `${quizId}_${Date.now()}`), resultData);
+            await setDoc(doc(db, "quiz_results", resultId), resultData);
 
             if (auth.currentUser) {
                 const quizRef = doc(db, "module_test", quizId);
@@ -66,8 +76,9 @@ const StartQuiz = () => {
                 });
             }
 
+            setSubmittedResultId(resultId);
             setIsAutoSubmitted(auto);
-            setFinalScore(score);
+            setFinalScore(correctAnswersCount);
             setShowResultPopup(true);
         } catch (error) {
             console.error("Error submitting quiz: ", error);
@@ -373,14 +384,22 @@ const StartQuiz = () => {
                             </p>
                             <div className="bg-indigo-50 rounded-2xl p-6 mb-8 border border-indigo-100">
                                 <p className="text-xs font-black text-indigo-400 uppercase tracking-widest mb-2">Final Score</p>
-                                <p className="text-6xl font-black text-indigo-600">{finalScore}<span className="text-3xl text-indigo-400">%</span></p>
+                                <p className="text-6xl font-black text-indigo-600">{finalScore}<span className="text-3xl text-indigo-400">/{questions.length}</span></p>
                             </div>
-                            <button
-                                onClick={() => navigate(-1)}
-                                className="w-full bg-indigo-600 text-white rounded-2xl py-4 font-black text-lg hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-200"
-                            >
-                                Continue
-                            </button>
+                            <div className="flex flex-col gap-3">
+                                <button
+                                    onClick={() => navigate(`/quiz-result/${submittedResultId}`)}
+                                    className="w-full bg-indigo-600 text-white rounded-2xl py-4 font-black text-lg hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-200"
+                                >
+                                    View Detailed Results
+                                </button>
+                                <button
+                                    onClick={() => navigate(-1)}
+                                    className="w-full bg-white border border-slate-200 text-slate-700 rounded-2xl py-4 font-black text-lg hover:bg-slate-50 transition-all"
+                                >
+                                    Go Back to Lesson
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
